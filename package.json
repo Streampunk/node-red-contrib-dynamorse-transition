@@ -1,0 +1,34 @@
+{
+  "name": "node-red-contrib-dynamorse-transition",
+  "version": "0.1.0",
+  "description": "Dynamorse transition nodes for Node-RED",
+  "author": "Streampunk Media Ltd",
+  "license": "Apache-2.0",
+  "keywords": [
+    "node-red"
+  ],
+  "dependencies": {
+    "codecadon": "^0.1.6",
+    "uuid": "^2.0.1"
+  },
+  "devDependencies": {
+    "tape": "^4.6.3",
+    "dynamorse-test": "^0.1.1"
+  },
+  "scripts": {
+    "test": "tape test/*Spec.js"
+  },
+  "node-red": {
+    "nodes": {
+      "mix": "nodes/32-mix.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Streampunk/node-red-contrib-dynamorse-transition.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Streampunk/node-red-contrib-dynamorse-transition/issues"
+  },
+  "homepage": "https://github.com/Streampunk/node-red-contrib-dynamorse-transition#readme"
+}
