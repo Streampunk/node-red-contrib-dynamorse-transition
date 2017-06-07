@@ -24,6 +24,8 @@
         description : { value : "" },
         device : { value : "", type : "device" },
         mix : { value : "1.0" },
+        oscPort : { value : 8000, validate : RED.validators.number() },
+        mixControl : { value : "/1/faderA" }
       },
       inputs:1,
       outputs:1,
@@ -55,6 +57,15 @@
   <div class="form-row">
     <label for="node-input-mix"><i class="fa fa-clone"></i> mix</label>
     <input type="text" id="node-input-mix" placeholder="1.0">
+  </div>
+  <br/>
+  <div class="form-row">
+    <label for="node-input-oscPort"><i class="fa fa-feed"></i> OSC port</label>
+    <input type="number" id="node-input-oscPort" placeholder="8000">
+  </div>
+  <div class="form-row">
+    <label for="node-input-mixControl"><i class="fa fa-code"></i> mix control</label>
+    <input type="text" id="node-input-mixControl" placeholder="/1/faderA">
   </div>
 </script>
 

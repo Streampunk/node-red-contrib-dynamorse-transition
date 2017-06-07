@@ -9,6 +9,7 @@
   ],
   "dependencies": {
     "codecadon": "^0.1.6",
+    "osc": "2.2.0",
     "uuid": "^2.0.1"
   },
   "devDependencies": {
