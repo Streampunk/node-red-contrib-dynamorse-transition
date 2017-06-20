@@ -18,6 +18,62 @@ var redioactive = require('node-red-contrib-dynamorse-core').Redioactive;
 var Grain = require('node-red-contrib-dynamorse-core').Grain;
 var uuid = require('uuid');
 
+function make420PBuf(width, height, wipeVal) {
+  var lumaPitchBytes = width;
+  var chromaPitchBytes = lumaPitchBytes / 2;
+  var buf = Buffer.alloc(lumaPitchBytes * height * 3 / 2);
+  var lOff = 0;
+  var uOff = lumaPitchBytes * height;
+  var vOff = uOff + chromaPitchBytes * height / 2;
+
+  for (var y=0; y<height; ++y) {
+    var xlOff = 0;
+    var xcOff = 0;
+    var evenLine = (y & 1) === 0;
+    for (var x=0; x<width; x+=2) {
+      buf[lOff + xlOff + 0] = wipeVal.y;
+      buf[lOff + xlOff + 1] = wipeVal.y;
+      buf[uOff + xcOff] = wipeVal.cb;    
+      buf[vOff + xcOff] = wipeVal.cr;
+      xlOff += 2;
+      xcOff += 1;
+    }
+    lOff += lumaPitchBytes;
+    if (!evenLine) {
+      uOff += chromaPitchBytes;
+      vOff += chromaPitchBytes;
+    }
+  }
+  return buf;
+}
+
+function makeYUV422P10Buf(width, height, wipeVal) {
+  var lumaPitchBytes = width * 2;
+  var chromaPitchBytes = lumaPitchBytes / 2;
+  var buf = Buffer.alloc(lumaPitchBytes * height * 2);  
+  var lOff = 0;
+  var uOff = lumaPitchBytes * height;
+  var vOff = uOff + chromaPitchBytes * height;
+
+  for (var y=0; y<height; ++y) {
+    var xlOff = 0;
+    var xcOff = 0;
+    for (var x=0; x<width; x+=2) {
+      buf.writeUInt16LE(wipeVal.y, lOff + xlOff);
+      buf.writeUInt16LE(wipeVal.y, lOff + xlOff + 2);
+      xlOff += 4;
+    
+      buf.writeUInt16LE(wipeVal.cr, uOff + xcOff);
+      buf.writeUInt16LE(wipeVal.cb, vOff + xcOff);
+      xcOff += 2;
+    }
+    lOff += lumaPitchBytes;
+    uOff += chromaPitchBytes;
+    vOff += chromaPitchBytes;
+  }
+  return buf;
+}
+
 function Queue() {
   this.stack = [];
   this.entry = function(i) {
@@ -63,6 +119,25 @@ flowQueue.prototype.pop = function() {
   return elem;
 }
 
+function makeBlankGrain(tags) {
+  console.log(tags);
+  var depthTag = tags.depth || ["8"];
+  var samplingTag = tags.sampling || ["YCbCr-4:2:0"];
+  var isYUV422P10 = (depthTag[0] === "10") && (samplingTag[0] === "YCbCr-4:2:2");
+  var blankBuf;
+  if (isYUV422P10)
+    blankBuf = makeYUV422P10Buf(+tags.width[0], +tags.height[0], { y:940, cb:512, cr:512 });
+  else
+    blankBuf = make420PBuf(+tags.width[0], +tags.height[0], { y:235, cb:128, cr:128 });
+
+  var grainTime = Buffer.alloc(10);
+  var curTime = [ Date.now() / 1000|0, (Date.now() % 1000) * 1000000 ];
+  grainTime.writeUIntBE(curTime[0], 0, 6);
+  grainTime.writeUInt32BE(curTime[1], 6);
+  var grainDuration = [ 1, 25 ];
+  return new Grain([blankBuf], grainTime, grainTime, null,
+    null, null, grainDuration);
+}
 
 function multiFlows(maxQueue) {
   this.maxQueue = maxQueue;
@@ -79,29 +154,34 @@ multiFlows.prototype.checkFlowId = function(grain) {
   return null;
 }
 
+multiFlows.prototype.blankNext = function() {}
+
 multiFlows.prototype.addFlow = function(flow) {
   var fq = new flowQueue(flow);
   this.flowQueues.push(fq);
+  if (!this.blankGrain)
+    this.blankGrain = { grain:makeBlankGrain(flow.tags), next:this.blankNext };
   return fq;
 }
 
 multiFlows.prototype.checkSet = function(numFlows) {
   var grains = [];
 
-  var setAvailable = this.flowQueues.length >= numFlows;
+  var setAvailable = this.flowQueues.length > 0;
   for (let fq of this.flowQueues)
     setAvailable = setAvailable && fq.grainAvailable();
 
   if (setAvailable) {
     for (let f=0; f<numFlows; ++f) {
       let fq = this.flowQueues[f];
-      grains.push(fq.pop());
+      if (fq)
+        grains.push(fq.pop());
+      else
+        grains.push(this.blankGrain);
     }
   }
-
   return grains;
 }
-
 
 function TransValve (RED, config) {
   redioactive.Valve.call(this, config);
