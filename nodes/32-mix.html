@@ -77,9 +77,11 @@
 </style>
 
 <script type="text/x-red" data-help-name="mix">
-  <h1>Mix between two input flows</h1>
-  <p>Applies a mix to uncompressed grains, creating a new NMOS flow with the correct attributes</p>
-
+  <h1>Mix between two input video flows</h1>
+  <p>Applies a mix to uncompressed video grains, creating a new NMOS flow with the correct attributes</p>
+  <p>The mix value can be controlled via UDP messages from an <a href="http://opensoundcontrol.org/introduction-osc">Open Sound Control</a> device such as <a href="https://liine.net/en/products/lemur/">Lemur</a> or <a href="https://hexler.net/software/touchosc">TouchOSC</a></p>
+  <p>The node supports two YCbCr planar formats - 420P for 8-bit and YUV422P10 for 10-bit</p>
+  
   <h3>Parameters</h3>
   <div class="param-table">
   <table>
@@ -101,6 +103,14 @@
    <tr>
     <td><i class="fa fa-suitcase"></i> max buffer</td>
     <td>Maximum number of grains to buffer before overflowing.</td>
+   </tr>
+   <tr>
+    <td><i class="fa fa-feed"></i> OSC port</td>
+    <td>The port on which this node should listen for OSC UDP messages. The default port is 8000</td>
+   </tr>
+   <tr>
+    <td><i class="fa fa-code"></i> mix control</td>
+    <td>The OSC string that will indicate the control value for the mix. Default is &quot;&sol;1&sol;faderA&quot;.</td>
    </tr>
   </table>
   </div>
