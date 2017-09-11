@@ -24,8 +24,7 @@
         description : { value : "" },
         device : { value : "", type : "device" },
         mix : { value : "1.0" },
-        oscPort : { value : 8000, validate : RED.validators.number() },
-        mixControl : { value : "/1/faderA" }
+        mixControl : { value : "/1/fader1" }
       },
       inputs:1,
       outputs:1,
@@ -60,12 +59,8 @@
   </div>
   <br/>
   <div class="form-row">
-    <label for="node-input-oscPort"><i class="fa fa-feed"></i> OSC port</label>
-    <input type="number" id="node-input-oscPort" placeholder="8000">
-  </div>
-  <div class="form-row">
     <label for="node-input-mixControl"><i class="fa fa-code"></i> mix control</label>
-    <input type="text" id="node-input-mixControl" placeholder="/1/faderA">
+    <input type="text" id="node-input-mixControl" placeholder="/1/fader1">
   </div>
 </script>
 
@@ -105,12 +100,8 @@
     <td>Maximum number of grains to buffer before overflowing.</td>
    </tr>
    <tr>
-    <td><i class="fa fa-feed"></i> OSC port</td>
-    <td>The port on which this node should listen for OSC UDP messages. The default port is 8000</td>
-   </tr>
-   <tr>
     <td><i class="fa fa-code"></i> mix control</td>
-    <td>The OSC string that will indicate the control value for the mix. Default is &quot;&sol;1&sol;faderA&quot;.</td>
+    <td>The OSC string that will indicate the control value for the mix. Default is &quot;&sol;1&sol;fader1&quot;.</td>
    </tr>
   </table>
   </div>

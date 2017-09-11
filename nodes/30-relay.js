@@ -16,6 +16,7 @@
 var util = require('util');
 var redioactive = require('node-red-contrib-dynamorse-core').Redioactive;
 var TransValve = require('./transValve.js').TransValve;
+var oscServer = require('../util/oscServer.js');
 
 module.exports = function (RED) {
   function Relay (config) {
@@ -24,18 +25,23 @@ module.exports = function (RED) {
     this.active = (config.active === null || typeof config.active === "undefined") || config.active;
     var node = this;
 
+    var oscServ = oscServer.getInstance(this);
+    oscServ.addControl(config.actControl, val => this.active = val != 0);
+
     this.setInfo = function (srcTags, dstTags) {
       return 0;
     }
 
     this.processGrain = function (srcBufArray, dstBufLen, cb) {
-      console.log(`processGrain len ${srcBufArray[0].length}, ${srcBufArray[1].length}`);
       cb(null, srcBufArray[node.active?1:0]);
     }
 
     this.quit = function(cb) {
-      console.log('Relay quit');
       cb();
+    }
+
+    this.close = function() {
+      oscServ.removeControl(config.actControl);
     }
   }
   util.inherits(Relay, TransValve);

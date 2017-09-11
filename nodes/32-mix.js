@@ -17,43 +17,7 @@ var util = require('util');
 var redioactive = require('node-red-contrib-dynamorse-core').Redioactive;
 var TransValve = require('./transValve.js').TransValve;
 var codecadon = require('codecadon');
-var osc = require('osc');
-
-function oscServer(port, node, map) {
-  this.port = port;
-  this.node = node;
-  this.map = map;
-
-  this.oscPort = new osc.UDPPort({
-    localAddress: "0.0.0.0",
-    localPort: this.port
-  });
-
-  this.oscPort.on("ready", () => {
-    this.node.log(`OSC listening on port ${this.port}`);
-  });
-
-  this.oscPort.on("message", (oscMessage, timeTag, info) => {
-    var address = oscMessage.address;
-    var value = oscMessage.args[0];
-    this.node.log(`OSC message: '${address}' value: ${value}`);
-
-    var update = this.map[address];
-    if (update)
-      update(value);
-  });
-
-  this.oscPort.on("error", (err) => {
-    this.node.log("OSC port error: ", err);
-  });
-
-  this.oscPort.open();
-}
-
-oscServer.prototype.close = function() {
-  this.node.log("Closing OSC");
-  this.oscPort.close();
-}
+var oscServer = require('../util/oscServer.js');
 
 module.exports = function (RED) {
   function Mix (config) {
@@ -62,9 +26,9 @@ module.exports = function (RED) {
 
     var mixVal = +config.mix;
 
-    var controlMap = { [config.mixControl]: val => mixVal = val };
-    var oscServ = new oscServer(+config.oscPort, this, controlMap);
-
+    var oscServ = oscServer.getInstance(this);
+    oscServ.addControl(config.mixControl, val => mixVal = val);
+    
     var stamper = new codecadon.Stamper(function() {
       console.log('Stamper exiting');
     });
@@ -86,10 +50,11 @@ module.exports = function (RED) {
     }
 
     this.quit = function(cb) {
-      stamper.quit(() => {
-        cb();
-        oscServ.close();
-      });
+      stamper.quit(() => cb());
+    }
+
+    this.close = function() {
+      oscServ.removeControl(config.mixControl);
     }
   }
   util.inherits(Mix, TransValve);
