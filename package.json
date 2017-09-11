@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-dynamorse-transition",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Dynamorse transition nodes for Node-RED",
   "author": "Streampunk Media Ltd",
   "license": "Apache-2.0",
