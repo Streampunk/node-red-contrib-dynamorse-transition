@@ -76,8 +76,9 @@ module.exports = function (RED) {
       return stamper.setInfo(srcTags, dstTags);
     }
 
-    this.processGrain = function (srcBufArray, dstBuf, cb) {
+    this.processGrain = function (srcBufArray, dstBufLen, cb) {
       this.log(`Mix: ${mixVal}`);
+      var dstBuf = Buffer.alloc(dstBufLen);
       var paramTags = { pressure: mixVal };
       var numQueued = stamper.mix(srcBufArray, dstBuf, paramTags, (err, result) => {
         cb(err, result);

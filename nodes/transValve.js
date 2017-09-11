@@ -74,6 +74,25 @@ function makeYUV422P10Buf(width, height, wipeVal) {
   return buf;
 }
 
+function makeBGR10Buf(width, height, wipeVal) {
+  var pitchBytes = width * 4;
+  var buf = Buffer.alloc(pitchBytes * height);
+  var yOff = 0;
+
+  for (var y=0; y<height; ++y) {
+    var xOff = 0;
+    for (var x=0; x<width; ++x) {
+      buf.writeUInt32BE(((wipeVal.b << 2) & 0xfc) | 
+                        (((wipeVal.b << 2) | (wipeVal.g << 12)) & 0xff00) | 
+                        (((wipeVal.g << 12) | (wipeVal.r << 22)) & 0xff0000) | 
+                        ((wipeVal.r << 22) & 0xff000000), yOff + xOff);
+      xOff += 4;
+    }
+    yOff += pitchBytes;
+  }
+  return buf;
+}
+
 function Queue() {
   this.stack = [];
   this.entry = function(i) {
@@ -120,15 +139,18 @@ flowQueue.prototype.pop = function() {
 }
 
 function makeBlankGrain(tags) {
-  console.log(tags);
   var depthTag = tags.depth || ["8"];
   var samplingTag = tags.sampling || ["YCbCr-4:2:0"];
-  var isYUV422P10 = (depthTag[0] === "10") && (samplingTag[0] === "YCbCr-4:2:2");
+  var packingTag = tags.packing || ["420P"];
+  var isBGR10 = (depthTag[0] === "10") && (packingTag[0].slice(0,5) === "BGR10");
+  var isYUV422P10 = !isBGR10 && (depthTag[0] === "10") && (samplingTag[0] === "YCbCr-4:2:2");
   var blankBuf;
-  if (isYUV422P10)
-    blankBuf = makeYUV422P10Buf(+tags.width[0], +tags.height[0], { y:940, cb:512, cr:512 });
+  if (isBGR10)
+    blankBuf = makeBGR10Buf(+tags.width[0], +tags.height[0], { b:0, g:0, r:0 });
+  else if (isYUV422P10)
+    blankBuf = makeYUV422P10Buf(+tags.width[0], +tags.height[0], { y:64, cb:512, cr:512 });
   else
-    blankBuf = make420PBuf(+tags.width[0], +tags.height[0], { y:235, cb:128, cr:128 });
+    blankBuf = make420PBuf(+tags.width[0], +tags.height[0], { y:16, cb:128, cr:128 });
 
   var grainTime = Buffer.alloc(10);
   var curTime = [ Date.now() / 1000|0, (Date.now() % 1000) * 1000000 ];
@@ -212,20 +234,19 @@ function TransValve (RED, config) {
     var grains = srcFlows.checkSet(2);
     if (grains.length > 0) {
       var srcBufArray = [];
-      for (let i=0; i<grains.length; ++i) 
+      for (let i=0; i<grains.length; ++i)
         srcBufArray.push(grains[i].grain.buffers[0]);
-      var dstBuf = Buffer.alloc(dstBufLen);
-      this.processGrain(srcBufArray, dstBuf, (err, result) => {
+      this.processGrain(srcBufArray, dstBufLen, (err, result) => {
         if (err) {
           push(err);
         } else if (result) {
           push(null, new Grain(result, x.ptpSync, x.ptpOrigin,
-                               x.timecode, dstFlow.id, source.id, x.duration));
+                              x.timecode, dstFlow.id, source.id, x.duration));
         }
         for (let i=0; i<grains.length; ++i)
           grains[i].next();
       });
-    }
+      }
   };
 
   this.consume((err, x, push, next) => {

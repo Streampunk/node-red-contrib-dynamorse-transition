@@ -1,0 +1,125 @@
+<!--
+  Copyright 2016 Streampunk Media Ltd.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<script type="text/javascript">
+  RED.nodes.registerType('relay', {
+    category: 'valve',
+    color: '#62806A',
+    defaults: {
+      name: { value : "" },
+      description : { value : "" },
+      device : { value : "", type : "device" },
+      maxBuffer : { value : 10, validate : RED.validators.number() },
+      active: { value : true }
+    },
+    inputs:1,
+    outputs:1,
+    icon: "valve.png",
+    label: function() {
+      return this.name || "relay";
+    },
+    align: "left",
+    button: {
+      toggle: "active",
+      onclick: function() {
+        var label = this.name||"relay";
+        var node = this;
+        $.ajax({
+          url: "relay/"+this.id+"/"+(this.active?"enable":"disable"),
+          type: "POST",
+          success: function(resp, textStatus, xhr) {
+            if (xhr.status == 200) {
+              RED.notify(node._("relay.notification.activated",{label:label}),"success");
+            } else if (xhr.status == 201) {
+              RED.notify(node._("relay.notification.deactivated",{label:label}),"success");
+            }
+          },
+          error: function(jqXHR,textStatus,errorThrown) {
+            if (jqXHR.status == 404) {
+              RED.notify(node._("common.notification.error", {message: node._("common.notification.errors.not-deployed")}),"error");
+            } else if (jqXHR.status == 0) {
+              RED.notify(node._("common.notification.error", {message: node._("common.notification.errors.no-response")}),"error");
+            } else {
+              RED.notify(node._("common.notification.error",{message:node._("common.notification.errors.unexpected",{status:err.status,message:err.response})}),"error");
+            }
+          }
+        });
+      }
+    }
+  });
+</script>
+
+<script type="text/x-red" data-template-name="relay">
+  <!-- Common to all funnel nodes -->
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> name</label>
+    <input type="text" id="node-input-name" placeholder="name">
+  </div>
+  <div class="form-row">
+    <label for="node-input-description"><i class="fa fa-info-circle"></i> description</label>
+    <input type="text" id="node-input-description" placeholder="source and flow description">
+  </div>
+  <div class="form-row">
+    <label for="node-input-device"><i class="fa fa-tablet"></i> device</label>
+    <input type="text" id="node-input-device">
+  </div>
+  <div class="form-row">
+    <label for="node-input-maxBuffer"><i class="fa fa-suitcase"></i> max buffer</label>
+    <input type="number" id="node-input-maxBuffer" placeholder="10" style="width: 100px">
+  </div>
+</script>
+
+<style>
+.param-table table, th, td {
+  vertical-align: top;
+  padding: 3px;
+}
+</style>
+
+<script type="text/x-red" data-help-name="relay">
+  <h1>Switch inputs</h1>
+  <p>Switch between two flows cleanly at a grain boundary.</p>
+
+  <h3>Parameters</h3>
+  <div class="param-table">
+  <table>
+   <tr>
+    <th>parameter</th><th>description</th>
+   </tr>
+   <tr>
+    <td><i class="fa fa-tag" aria-hidden="true"></i> name</td>
+    <td>Name of the node. Also used as source &amp; flow label.</td>
+   </tr>
+   <tr>
+    <td><i class="fa fa-info-circle"></i> description</td>
+    <td>Optional description of this NMOS source and output flow.</td>
+   </tr>
+   <tr>
+    <td><i class="fa fa-tablet"></i> device</td>
+    <td>Select or create an NMOS device for this source and flow.</td>
+   </tr>
+   <tr>
+    <td><i class="fa fa-suitcase"></i> max buffer</td>
+    <td>Maximum number of grains to buffer before overflowing.</td>
+   </tr>
+  </table>
+  </div>
+
+  <p>The button provides the ability to switch between sources cleanly at a grain boundary.</p>
+
+  <h3>Maturity</h3>
+  <p>Currently a naive implementation.</p>
+</script>
