@@ -10,7 +10,7 @@ This package can be installed from the 'manage palette' option in the Node-RED m
 
     npm install node-red-contrib-dynamorse-transition
 
-The transition value can be controlled via UDP messages from an [Open Sound Control](http://opensoundcontrol.org/introduction-osc) device such as [Lemur](https://liine.net/en/products/lemur/) or [TouchOSC](https://hexler.net/software/touchosc). Each node should be configured with a UDP Port number and the control string to use to indicate the value.
+The transition value (mix, switch) can be controlled via UDP messages on port 8000 from an [Open Sound Control](http://opensoundcontrol.org/introduction-osc) device such as [Lemur](https://liine.net/en/products/lemur/) or [TouchOSC](https://hexler.net/software/touchosc). Each node should be configured with the control string to use to indicate the value.
 
 ## Status, support and further development
 
