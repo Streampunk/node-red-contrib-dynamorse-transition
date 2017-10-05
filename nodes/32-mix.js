@@ -14,7 +14,6 @@
 */
 
 var util = require('util');
-var redioactive = require('node-red-contrib-dynamorse-core').Redioactive;
 var TransValve = require('./transValve.js').TransValve;
 var codecadon = require('codecadon');
 var oscServer = require('../util/oscServer.js');
@@ -29,34 +28,34 @@ module.exports = function (RED) {
     var oscServ = oscServer.getInstance(this);
     oscServ.addControl(config.mixControl, val => mixVal = val);
     
-    var stamper = new codecadon.Stamper(function() {
+    var stamper = new codecadon.Stamper(() => {
       console.log('Stamper exiting');
     });
-    stamper.on('error', function(err) {
+    stamper.on('error', err => {
       console.log('Stamper error: ' + err);
     });
 
     this.setInfo = function (srcTags, dstTags) {
       return stamper.setInfo(srcTags, dstTags);
-    }
+    };
 
     this.processGrain = function (srcBufArray, dstBufLen, cb) {
       this.log(`Mix: ${mixVal}`);
       var dstBuf = Buffer.alloc(dstBufLen);
       var paramTags = { pressure: mixVal };
-      var numQueued = stamper.mix(srcBufArray, dstBuf, paramTags, (err, result) => {
+      stamper.mix(srcBufArray, dstBuf, paramTags, (err, result) => {
         cb(err, result);
       });
-    }
+    };
 
     this.quit = function(cb) {
       stamper.quit(() => cb());
-    }
+    };
 
     this.close = function() {
       oscServ.removeControl(config.mixControl);
-    }
+    };
   }
   util.inherits(Mix, TransValve);
-  RED.nodes.registerType("mix", Mix);
-}
+  RED.nodes.registerType('mix', Mix);
+};

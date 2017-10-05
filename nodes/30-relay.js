@@ -14,7 +14,6 @@
 */
 
 var util = require('util');
-var redioactive = require('node-red-contrib-dynamorse-core').Redioactive;
 var TransValve = require('./transValve.js').TransValve;
 var oscServer = require('../util/oscServer.js');
 
@@ -22,39 +21,39 @@ module.exports = function (RED) {
   function Relay (config) {
     RED.nodes.createNode(this, config);
     TransValve.call(this, RED, config);
-    this.active = (config.active === null || typeof config.active === "undefined") || config.active;
+    this.active = (config.active === null || typeof config.active === 'undefined') || config.active;
     var node = this;
 
     var oscServ = oscServer.getInstance(this);
     oscServ.addControl(config.actControl, val => this.active = val != 0);
 
-    this.setInfo = function (srcTags, dstTags) {
+    this.setInfo = function (/*srcTags, dstTags*/) {
       return 0;
-    }
+    };
 
     this.processGrain = function (srcBufArray, dstBufLen, cb) {
       cb(null, srcBufArray[node.active?1:0]);
-    }
+    };
 
     this.quit = function(cb) {
       cb();
-    }
+    };
 
     this.close = function() {
       oscServ.removeControl(config.actControl);
-    }
+    };
   }
   util.inherits(Relay, TransValve);
-  RED.nodes.registerType("relay", Relay);
+  RED.nodes.registerType('relay', Relay);
 
-  RED.httpAdmin.post("/relay/:id/:state", RED.auth.needsPermission("relay.write"), function(req,res) {
+  RED.httpAdmin.post('/relay/:id/:state', RED.auth.needsPermission('relay.write'), (req,res) => {
     var node = RED.nodes.getNode(req.params.id);
     var state = req.params.state;
-    if (node !== null && typeof node !== "undefined" ) {
-      if (state === "enable") {
+    if (node !== null && typeof node !== 'undefined' ) {
+      if (state === 'enable') {
         node.active = true;
         res.sendStatus(200);
-      } else if (state === "disable") {
+      } else if (state === 'disable') {
         node.active = false;
         res.sendStatus(201);
       } else {
@@ -64,4 +63,4 @@ module.exports = function (RED) {
       res.sendStatus(404);
     }
   });
-}
+};

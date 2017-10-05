@@ -21,15 +21,15 @@ function oscServer(node) {
   this.map = [];
 
   this.oscPort = new osc.UDPPort({
-    localAddress: "0.0.0.0",
+    localAddress: '0.0.0.0',
     localPort: this.port
   });
 
-  this.oscPort.on("ready", () => {
+  this.oscPort.on('ready', () => {
     this.node.log(`OSC listening on port ${this.port}`);
   });
 
-  this.oscPort.on("message", (oscMessage, timeTag, info) => {
+  this.oscPort.on('message', (oscMessage/*, timeTag, info*/) => {
     var control = oscMessage.address;
     var value = oscMessage.args[0];
     this.node.log(`OSC message: '${control}' value: ${value}`);
@@ -41,8 +41,8 @@ function oscServer(node) {
     });
   });
 
-  this.oscPort.on("error", (err) => {
-    this.node.log("OSC port error: ", err);
+  this.oscPort.on('error', (err) => {
+    this.node.log('OSC port error: ', err);
   });
 
   this.oscPort.open();
@@ -50,19 +50,19 @@ function oscServer(node) {
 
 oscServer.prototype.addControl = function(control, fn) {
   this.map[this.map.length] = { [control]: fn };
-}
+};
 
 oscServer.prototype.removeControl = function(control) {
   this.map.forEach((entry, index) => {
     if (entry[control])
       this.map.splice(index, 1);
   });
-}
+};
 
 oscServer.prototype.close = function() {
-  this.node.log("Closing OSC");
+  this.node.log('Closing OSC');
   this.oscPort.close();
-}
+};
 
 function getInstance(node) {
   var oscServ = node.context().global.get('oscServ');
@@ -71,7 +71,7 @@ function getInstance(node) {
     node.context().global.set('oscServ', oscServ);
   }
 
-  return oscServ
+  return oscServ;
 }
 
 module.exports = {

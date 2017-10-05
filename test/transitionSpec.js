@@ -16,26 +16,26 @@
 var TestUtil = require('dynamorse-test').TestUtil;
 
 var mixTestNode = JSON.stringify({
-  "type": "mix",
-  "z": TestUtil.testFlowId,
-  "name": "mix-test",
-  "x": 100.0,
-  "y": 100.0,
-  "mix": "0.5",
-  "wires": [[]]
+  'type': 'mix',
+  'z': TestUtil.testFlowId,
+  'name': 'mix-test',
+  'x': 100.0,
+  'y': 100.0,
+  'mix': '0.5',
+  'wires': [[]]
 });
 
-var funnel1NodeId = "24fde3d7.b7544c";
-var funnel2NodeId = "ba156ff1.45ea9";
-var mixNodeId = "145f639d.4b63ac";
-var spoutNodeId = "f2186999.7e5f78";
+var funnel1NodeId = '24fde3d7.b7544c';
+var funnel2NodeId = 'ba156ff1.45ea9';
+var mixNodeId = '145f639d.4b63ac';
+var spoutNodeId = 'f2186999.7e5f78';
 
 TestUtil.nodeRedTest('A srcx2->mix->spout flow is posted to Node-RED', {
   numPushes: 10,
   funnelMaxBuffer: 10,
-  mixPressure: "0.5",
+  mixPressure: '0.5',
   spoutTimeout: 0
-}, function getFlow(params) {
+}, (params) => {
   var testFlow = JSON.parse(TestUtil.testNodes.baseTestFlow);
   testFlow.nodes[0] = JSON.parse(TestUtil.testNodes.funnelGrainNode);
   testFlow.nodes[0].id = funnel1NodeId;
@@ -62,14 +62,14 @@ TestUtil.nodeRedTest('A srcx2->mix->spout flow is posted to Node-RED', {
   testFlow.nodes[3].timeout = params.spoutTimeout;
   testFlow.nodes[3].x = 500.0;
   return testFlow;
-}, function onMsg(t, params, msgObj, onEnd) {
+}, (t, params, msgObj, onEnd) => {
   //t.comment(`Message: ${JSON.stringify(msgObj)}`);
   if (msgObj.hasOwnProperty('receive')) {
     TestUtil.checkGrain(t, msgObj.receive);
     params.count++;
   }
   else if (msgObj.hasOwnProperty('end') && (msgObj.src === 'spout')) {
-    t.equal(params.count, params.numPushes, `received end after expected number of pushes`);
+    t.equal(params.count, params.numPushes, 'received end after expected number of pushes');
     onEnd();
   }
 });
