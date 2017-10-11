@@ -27,11 +27,18 @@ module.exports = function (RED) {
     var oscServ = oscServer.getInstance(this);
     oscServ.addControl(config.actControl, val => this.active = val != 0);
 
-    this.setInfo = function (/*srcTags, dstTags*/) {
+    this.findSrcTags = (cable) => {
+      if (!Array.isArray(cable[0].video) && cable[0].video.length < 1) {
+        return Promise.reject('Logical cable does not contain video');
+      }
+      return cable[0].video[0].tags;
+    };
+
+    this.setInfo = (/*srcTags, dstTags, logLevel*/) => {
       return 0;
     };
 
-    this.processGrain = function (srcBufArray, dstBufLen, cb) {
+    this.processGrain = (srcBufArray, dstBufLen, cb) => {
       cb(null, srcBufArray[node.active?1:0]);
     };
 
@@ -39,10 +46,12 @@ module.exports = function (RED) {
       cb();
     };
 
-    this.close = function() {
+    this.closeValve = done => {
       oscServ.removeControl(config.actControl);
+      this.close(done);
     };
   }
+
   util.inherits(Relay, TransValve);
   RED.nodes.registerType('relay', Relay);
 

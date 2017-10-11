@@ -20,37 +20,26 @@ var uuid = require('uuid');
 
 function Queue() {
   this.stack = [];
-  this.entry = function(i) {
-    // flip so that the stack appears to be a fifo not a lifo!!
-    return this.stack[this.length() - i - 1];
-  };
-  this.front = function() {
-    return this.entry(0); 
-  };
-  this.dequeue = function() {
-    return this.stack.pop(); 
-  };
-  this.enqueue = function(item) {
-    this.stack.unshift(item);
-  };
-  this.length = function() {
-    return this.stack.length;
-  };
+  this.entry = (i) => this.stack[this.length() - i - 1]; // flip so that the stack appears to be a fifo not a lifo!!
+  this.front = () => this.entry(0);
+  this.dequeue = () => this.stack.pop(); 
+  this.enqueue = item => this.stack.unshift(item);
+  this.length = () => this.stack.length;
 }
 
 
-function flowQueue(flow) {
-  this.id = flow.id;
-  this.flow = flow;
+function flowQueue(flowID, tags) {
+  this.id = flowID;
+  this.tags = tags;
   this.queue = new Queue();
 }
 
 flowQueue.prototype.getFlowId = function() {
-  return this.flow.id;
+  return this.id;
 };
 
 flowQueue.prototype.getTags = function() {
-  return this.flow.tags;
+  return this.tags;
 };
 
 flowQueue.prototype.addGrain = function(grain, next) {
@@ -68,9 +57,27 @@ flowQueue.prototype.pop = function() {
 };
 
 
-function multiFlows(numFlows) {
-  this.numFlows = numFlows;
+function multiFlows(srcCable) {
+  this.numFlows = srcCable.length;
   this.flowQueues = [];
+
+  for (let i=0; i<this.numFlows; ++i) {
+    const flowID = srcCable[i].video[0].flowID;
+    const srcTags = srcCable[i].video[0].tags;
+    let flowHasAlpha = !(null == srcTags.hasAlpha);
+    if (flowHasAlpha) {
+      if (Array.isArray(srcTags.hasAlpha))
+        flowHasAlpha = ('true' === srcTags.hasAlpha[0]) || ('1' === srcTags.hasAlpha[0]);
+      else
+        flowHasAlpha = srcTags.hasAlpha;
+    }
+    
+    var fq = new flowQueue(flowID, srcTags);
+    if (flowHasAlpha)
+      this.flowQueues.unshift(fq); // flow with alpha must be first
+    else
+      this.flowQueues.push(fq);
+  }
 }
 
 multiFlows.prototype.checkFlowId = function(grain) {
@@ -81,25 +88,6 @@ multiFlows.prototype.checkFlowId = function(grain) {
       return fq;
   }
   return null;
-};
-
-multiFlows.prototype.addFlow = function(flow) {
-  if (this.flowQueues.length < this.numFlows) {
-    var flowHasAlpha = !(null == flow.tags.hasAlpha);
-    if (flowHasAlpha) {
-      if (Array.isArray(flow.tags.hasAlpha))
-        flowHasAlpha = ('true' === flow.tags.hasAlpha[0]) || ('1' === flow.tags.hasAlpha[0]);
-      else
-        flowHasAlpha = flow.tags.hasAlpha;
-    }
-
-    var fq = new flowQueue(flow);
-    if (flowHasAlpha)
-      this.flowQueues.unshift(fq); // flow with alpha must be first
-    else
-      this.flowQueues.push(fq);
-    return fq;
-  }
 };
 
 multiFlows.prototype.checkSet = function() {
@@ -130,24 +118,14 @@ multiFlows.prototype.getTags = function() {
   
 function TransValve (RED, config) {
   redioactive.Valve.call(this, config);
-  var dstFlow = null;
-  var dstBufLen = 0;
 
-  var srcFlows = new multiFlows(2);
-
-  if (!this.context().global.get('updated'))
-    return this.log('Waiting for global context updated.');
-
-  var nodeAPI = this.context().global.get('nodeAPI');
-  var ledger = this.context().global.get('ledger');
-  var localName = config.name || `${config.type}-${config.id}`;
-  var localDescription = config.description || `${config.type}-${config.id}`;
-  var pipelinesID = config.device ?
-    RED.nodes.getNode(config.device).nmos_id :
-    this.context().global.get('pipelinesID');
-
-  var source = new ledger.Source(null, null, localName, localDescription,
-    ledger.formats.video, null, null, pipelinesID, null);
+  const logLevel = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'].indexOf(RED.settings.logging.console.level);
+  let srcCable = null;
+  let srcFlows = null;
+  let srcTags = null;
+  let flowID = null;
+  let sourceID = null;
+  let dstBufLen = 0;
 
   this.doProcess = function(grains, push) {
     var srcBufArray = [];
@@ -159,7 +137,7 @@ function TransValve (RED, config) {
       } else if (result) {
         var x = grains[0].grain;
         push(null, new Grain(result, x.ptpSync, x.ptpOrigin,
-          x.timecode, dstFlow.id, source.id, x.duration));
+          x.timecode, flowID, sourceID, x.duration));
       }
       for (let i=0; i<grains.length; ++i)
         grains[i].next();
@@ -169,32 +147,7 @@ function TransValve (RED, config) {
   this.collectSet = function(push) {
     var grains = srcFlows.checkSet();
     if (grains.length > 0) {
-      if (!dstFlow) {
-        var srcTagsArray = srcFlows.getTags();
-        var dstTags = JSON.parse(JSON.stringify(srcTagsArray[0]));
-        dstTags['hasAlpha'] = [ 'false' ];
-
-        var formattedDstTags = JSON.stringify(dstTags, null, 2);
-        RED.comms.publish('debug', {
-          format: `${config.type} output flow tags:`,
-          msg: formattedDstTags
-        }, true);
-
-        dstFlow = new ledger.Flow(null, null, localName, localDescription,
-          ledger.formats.video, dstTags, source.id, null);
-
-        nodeAPI.putResource(source).catch(err => {
-          push(`Unable to register source: ${err}`);
-        });
-        nodeAPI.putResource(dstFlow).then(() => {
-          dstBufLen = this.setInfo(srcTagsArray, dstTags);
-          this.doProcess (grains, push);
-        }, err => {
-          push(`Unable to register flow: ${err}`);
-        });
-      } else {
-        this.doProcess (grains, push);
-      }
+      this.doProcess (grains, push);
     }
   };
 
@@ -207,26 +160,47 @@ function TransValve (RED, config) {
         push(null, x);
       });
     } else if (Grain.isGrain(x)) {
-      var fq = srcFlows.checkFlowId(x);
-      if (!fq) {
-        this.getNMOSFlow(x, (err, f) => {
-          if (err) return push('Failed to resolve NMOS flow.');
-          fq = srcFlows.addFlow(f);
-          if (!fq) return push('Unexpected new flow id');
-          fq.addGrain(x, next);
-          this.collectSet(push);
+      const nextJob = (srcTags) ?
+        Promise.resolve(x) :
+        this.findCable(x).then(cable => {
+          srcCable = cable;
+          srcTags = this.findSrcTags(cable);
+          var dstTags = JSON.parse(JSON.stringify(srcTags));
+          dstTags['hasAlpha'] = [ 'false' ];
+
+          var formattedDstTags = JSON.stringify(dstTags, null, 2);
+          RED.comms.publish('debug', {
+            format: `${config.type} output flow tags:`,
+            msg: formattedDstTags
+          }, true);
+      
+          this.makeCable({ video : [{ tags : dstTags }], backPressure : 'video[0]' });
+          flowID = this.flowID();
+          sourceID = this.sourceID();
+
+          srcFlows = new multiFlows(srcCable);
+          dstBufLen = this.setInfo(srcFlows.getTags(), dstTags, logLevel);
         });
-      } else {
+
+      nextJob.then(() => {
+        const fq = srcFlows.checkFlowId(x);
         fq.addGrain(x, next);
-        this.collectSet(push);
-      }
+
+        const grains = srcFlows.checkSet();
+        if (grains.length > 0) {
+          this.doProcess (grains, push);
+        }
+      }).catch(err => {
+        push(err);
+        next();
+      });
     } else {
       push(null, x);
       next();
     }
   });
 
-  this.on('close', this.close);
+  this.on('close', this.closeValve);
 }
 util.inherits(TransValve, redioactive.Valve);
 

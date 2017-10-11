@@ -28,18 +28,21 @@ module.exports = function (RED) {
     var oscServ = oscServer.getInstance(this);
     oscServ.addControl(config.mixControl, val => mixVal = val);
     
-    var stamper = new codecadon.Stamper(() => {
-      console.log('Stamper exiting');
-    });
-    stamper.on('error', err => {
-      console.log('Stamper error: ' + err);
-    });
+    var stamper = new codecadon.Stamper(() => this.log('Stamper exiting'));
+    stamper.on('error', err => this.error('Stamper error: ' + err));
 
-    this.setInfo = function (srcTags, dstTags) {
-      return stamper.setInfo(srcTags, dstTags);
+    this.findSrcTags = (cable) => {
+      if (!Array.isArray(cable[0].video) && cable[0].video.length < 1) {
+        return Promise.reject('Logical cable does not contain video');
+      }
+      return cable[0].video[0].tags;
     };
 
-    this.processGrain = function (srcBufArray, dstBufLen, cb) {
+    this.setInfo = (srcTags, dstTags, logLevel) => {
+      return stamper.setInfo(srcTags, dstTags, logLevel);
+    };
+
+    this.processGrain = (srcBufArray, dstBufLen, cb) => {
       this.log(`Mix: ${mixVal}`);
       var dstBuf = Buffer.alloc(dstBufLen);
       var paramTags = { pressure: mixVal };
@@ -48,12 +51,13 @@ module.exports = function (RED) {
       });
     };
 
-    this.quit = function(cb) {
+    this.quit = cb => {
       stamper.quit(() => cb());
     };
 
-    this.close = function() {
+    this.closeValve = done => {
       oscServ.removeControl(config.mixControl);
+      this.close(done);
     };
   }
   util.inherits(Mix, TransValve);

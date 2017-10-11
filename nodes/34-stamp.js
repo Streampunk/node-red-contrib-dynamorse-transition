@@ -22,15 +22,18 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, config);
     TransValve.call(this, RED, config);
 
-    var stamper = new codecadon.Stamper(() => {
-      console.log('Stamper exiting');
-    });
-    stamper.on('error', err => {
-      console.log('Stamper error: ' + err);
-    });
+    var stamper = new codecadon.Stamper(() => this.log('Stamper exiting'));
+    stamper.on('error', err => this.error('Stamper error: ' + err));
 
-    this.setInfo = function (srcTags, dstTags) {
-      return stamper.setInfo(srcTags, dstTags);
+    this.findSrcTags = (cable) => {
+      if (!Array.isArray(cable[0].video) && cable[0].video.length < 1) {
+        return Promise.reject('Logical cable does not contain video');
+      }
+      return cable[0].video[0].tags;
+    };
+
+    this.setInfo = (srcTags, dstTags, logLevel) => {
+      return stamper.setInfo(srcTags, dstTags, logLevel);
     };
 
     this.processGrain = function (srcBufArray, dstBufLen, cb) {
@@ -41,11 +44,13 @@ module.exports = function (RED) {
       });
     };
 
-    this.quit = function(cb) {
+    this.quit = (cb) => {
       stamper.quit(() => cb());
     };
 
-    this.close = function() {};
+    this.closeValve = done => {
+      this.close(done);
+    };
   }
   util.inherits(Stamp, TransValve);
   RED.nodes.registerType('stamp', Stamp);
