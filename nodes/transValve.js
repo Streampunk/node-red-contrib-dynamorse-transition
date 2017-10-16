@@ -166,7 +166,7 @@ function TransValve (RED, config) {
           srcCable = cable;
           srcTags = this.findSrcTags(cable);
           var dstTags = JSON.parse(JSON.stringify(srcTags));
-          dstTags['hasAlpha'] = [ 'false' ];
+          dstTags.hasAlpha = false;
 
           var formattedDstTags = JSON.stringify(dstTags, null, 2);
           RED.comms.publish('debug', {
