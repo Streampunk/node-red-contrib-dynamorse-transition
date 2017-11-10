@@ -13,7 +13,7 @@
   limitations under the License.
 */
 
-var osc = require('osc');
+const osc = require('osc');
 
 function oscServer(node) {
   this.port = 8000;
@@ -30,12 +30,12 @@ function oscServer(node) {
   });
 
   this.oscPort.on('message', (oscMessage/*, timeTag, info*/) => {
-    var control = oscMessage.address;
-    var value = oscMessage.args[0];
+    const control = oscMessage.address;
+    const value = oscMessage.args[0];
     this.node.log(`OSC message: '${control}' value: ${value}`);
 
     this.map.forEach((entry) => {
-      var update = entry[control];
+      const update = entry[control];
       if (update)
         update(value);
     });
@@ -65,7 +65,7 @@ oscServer.prototype.close = function() {
 };
 
 function getInstance(node) {
-  var oscServ = node.context().global.get('oscServ');
+  let oscServ = node.context().global.get('oscServ');
   if (!oscServ) {
     oscServ = new oscServer(node);
     node.context().global.set('oscServ', oscServ);

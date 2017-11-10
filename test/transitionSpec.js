@@ -13,9 +13,9 @@
   limitations under the License.
 */
 
-var TestUtil = require('dynamorse-test').TestUtil;
+const TestUtil = require('dynamorse-test').TestUtil;
 
-var mixTestNode = JSON.stringify({
+const mixTestNode = JSON.stringify({
   'type': 'mix',
   'z': TestUtil.testFlowId,
   'name': 'mix-test',
@@ -25,10 +25,10 @@ var mixTestNode = JSON.stringify({
   'wires': [[]]
 });
 
-var funnel1NodeId = '24fde3d7.b7544c';
-var funnel2NodeId = 'ba156ff1.45ea9';
-var mixNodeId = '145f639d.4b63ac';
-var spoutNodeId = 'f2186999.7e5f78';
+const funnel1NodeId = '24fde3d7.b7544c';
+const funnel2NodeId = 'ba156ff1.45ea9';
+const mixNodeId = '145f639d.4b63ac';
+const spoutNodeId = 'f2186999.7e5f78';
 
 TestUtil.nodeRedTest('A srcx2->mix->spout flow is posted to Node-RED', {
   numPushes: 10,
@@ -36,7 +36,7 @@ TestUtil.nodeRedTest('A srcx2->mix->spout flow is posted to Node-RED', {
   mixPressure: '0.5',
   spoutTimeout: 0
 }, (params) => {
-  var testFlow = JSON.parse(TestUtil.testNodes.baseTestFlow);
+  const testFlow = JSON.parse(TestUtil.testNodes.baseTestFlow);
   testFlow.nodes[0] = JSON.parse(TestUtil.testNodes.funnelGrainNode);
   testFlow.nodes[0].id = funnel1NodeId;
   testFlow.nodes[0].numPushes = params.numPushes;

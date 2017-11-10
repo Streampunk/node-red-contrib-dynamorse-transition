@@ -35,8 +35,8 @@
     button: {
       toggle: "active",
       onclick: function() {
-        var label = this.name||"relay";
-        var node = this;
+        const label = this.name||"relay";
+        const node = this;
         $.ajax({
           url: "relay/"+this.id+"/"+(this.active?"enable":"disable"),
           type: "POST",

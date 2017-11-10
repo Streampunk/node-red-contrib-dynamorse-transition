@@ -13,38 +13,31 @@
   limitations under the License.
 */
 
-var util = require('util');
-var TransValve = require('./transValve.js').TransValve;
-var oscServer = require('../util/oscServer.js');
+const util = require('util');
+const TransValve = require('./transValve.js').TransValve;
+const oscServer = require('../util/oscServer.js');
 
 module.exports = function (RED) {
   function Relay (config) {
     RED.nodes.createNode(this, config);
     TransValve.call(this, RED, config);
-    this.active = (config.active === null || typeof config.active === 'undefined') || config.active;
-    var node = this;
 
-    var oscServ = oscServer.getInstance(this);
+    const numInputs = 2;
+    this.active = (config.active === null || typeof config.active === 'undefined') || config.active;
+    const node = this;
+
+    const oscServ = oscServer.getInstance(this);
     oscServ.addControl(config.actControl, val => this.active = val != 0);
 
-    this.findSrcTags = (cable) => {
-      if (!Array.isArray(cable[0].video) && cable[0].video.length < 1) {
-        return Promise.reject('Logical cable does not contain video');
-      }
-      return cable[0].video[0].tags;
-    };
+    this.getProcessSources = cable => cable.filter((c, i) => i < numInputs);
+    
+    this.setInfo = (/*srcTags, dstTags, logLevel*/) => { };
 
-    this.setInfo = (/*srcTags, dstTags, logLevel*/) => {
-      return 0;
-    };
-
-    this.processGrain = (srcBufArray, dstBufLen, cb) => {
+    this.processGrain = (flowType, srcBufArray, cb) => {
       cb(null, srcBufArray[node.active?1:0]);
     };
 
-    this.quit = function(cb) {
-      cb();
-    };
+    this.quit = cb => cb();
 
     this.closeValve = done => {
       oscServ.removeControl(config.actControl);
@@ -55,9 +48,9 @@ module.exports = function (RED) {
   util.inherits(Relay, TransValve);
   RED.nodes.registerType('relay', Relay);
 
-  RED.httpAdmin.post('/relay/:id/:state', RED.auth.needsPermission('relay.write'), (req,res) => {
-    var node = RED.nodes.getNode(req.params.id);
-    var state = req.params.state;
+  RED.httpAdmin.post('/relay/:id/:state', RED.auth.needsPermission('relay.write'), (req, res) => {
+    const node = RED.nodes.getNode(req.params.id);
+    const state = req.params.state;
     if (node !== null && typeof node !== 'undefined' ) {
       if (state === 'enable') {
         node.active = true;

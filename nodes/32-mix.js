@@ -13,42 +13,44 @@
   limitations under the License.
 */
 
-var util = require('util');
-var TransValve = require('./transValve.js').TransValve;
-var codecadon = require('codecadon');
-var oscServer = require('../util/oscServer.js');
+const util = require('util');
+const TransValve = require('./transValve.js').TransValve;
+const codecadon = require('codecadon');
+const oscServer = require('../util/oscServer.js');
 
 module.exports = function (RED) {
   function Mix (config) {
     RED.nodes.createNode(this, config);
     TransValve.call(this, RED, config);
 
-    var mixVal = +config.mix;
+    const numInputs = 2;
+    let dstBufLen = 0;
+    let mixVal = +config.mix;
 
-    var oscServ = oscServer.getInstance(this);
+    const oscServ = oscServer.getInstance(this);
     oscServ.addControl(config.mixControl, val => mixVal = val);
     
-    var stamper = new codecadon.Stamper(() => this.log('Stamper exiting'));
+    const stamper = new codecadon.Stamper(() => this.log('Stamper exiting'));
     stamper.on('error', err => this.error('Stamper error: ' + err));
 
-    this.findSrcTags = (cable) => {
-      if (!Array.isArray(cable[0].video) && cable[0].video.length < 1) {
-        return Promise.reject('Logical cable does not contain video');
-      }
-      return cable[0].video[0].tags;
-    };
-
+    this.getProcessSources = cable => cable.filter((c, i) => i < numInputs);
+    
     this.setInfo = (srcTags, dstTags, logLevel) => {
-      return stamper.setInfo(srcTags, dstTags, logLevel);
+      const srcVideoTags = srcTags.filter(t => t.format === 'video');
+      dstBufLen = stamper.setInfo(srcVideoTags, dstTags.video, logLevel);
     };
 
-    this.processGrain = (srcBufArray, dstBufLen, cb) => {
-      this.log(`Mix: ${mixVal}`);
-      var dstBuf = Buffer.alloc(dstBufLen);
-      var paramTags = { pressure: mixVal };
-      stamper.mix(srcBufArray, dstBuf, paramTags, (err, result) => {
-        cb(err, result);
-      });
+    this.processGrain = (flowType, srcBufArray, cb) => {
+      if ('video' === flowType) {
+        this.log(`Mix: ${mixVal}`);
+        const dstBuf = Buffer.alloc(dstBufLen);
+        const paramTags = { pressure: mixVal };
+        stamper.mix(srcBufArray, dstBuf, paramTags, (err, result) => {
+          cb(err, result);
+        });
+      } else {
+        cb(null, srcBufArray[0]);
+      }
     };
 
     this.quit = cb => {
