@@ -67,11 +67,15 @@ function TransValve (RED, config) {
           selCable.forEach(c => {
             const cableTypes = Object.keys(c);
             cableTypes.forEach(t => {
-              if (c[t] && Array.isArray(c[t]) && !outCableSpec[t]) {
+              if (c[t] && Array.isArray(c[t])) {
                 const srcTags = c[t][0].tags;
                 const dstTags = JSON.parse(JSON.stringify(srcTags));
-                if ('video' === dstTags.format)
+                if ('video' === dstTags.format) {
                   dstTags.hasAlpha = false;
+                  if (outCableSpec[t])
+                    // if either input is interlaced, set the output as interlaced
+                    dstTags.interlace = dstTags.interlace || outCableSpec[t][0].tags.interlace;
+                }
                 outCableSpec[t] = [{ tags: dstTags }];
               }
             });
