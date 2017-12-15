@@ -13,16 +13,16 @@
   limitations under the License.
 */
 
-const TestUtil = require('dynamorse-test').TestUtil;
+const TestUtil = require('dynamorse-test');
 
-const mixTestNode = JSON.stringify({
-  'type': 'mix',
-  'z': TestUtil.testFlowId,
-  'name': 'mix-test',
-  'x': 100.0,
-  'y': 100.0,
-  'mix': '0.5',
-  'wires': [[]]
+const mixTestNode = () => ({
+  type: 'mix',
+  z: TestUtil.testFlowId,
+  name: 'mix-test',
+  x: 100.0,
+  y: 100.0,
+  mix: '0.5',
+  wires: [[]]
 });
 
 const funnel1NodeId = '24fde3d7.b7544c';
@@ -36,31 +36,32 @@ TestUtil.nodeRedTest('A srcx2->mix->spout flow is posted to Node-RED', {
   mixPressure: '0.5',
   spoutTimeout: 0
 }, (params) => {
-  const testFlow = JSON.parse(TestUtil.testNodes.baseTestFlow);
-  testFlow.nodes[0] = JSON.parse(TestUtil.testNodes.funnelGrainNode);
-  testFlow.nodes[0].id = funnel1NodeId;
-  testFlow.nodes[0].numPushes = params.numPushes;
-  testFlow.nodes[0].maxBuffer = params.funnelMaxBuffer;
-  testFlow.nodes[0].y = 100.0;
-  testFlow.nodes[0].wires[0][0] = mixNodeId;
-
-  testFlow.nodes[1] = JSON.parse(TestUtil.testNodes.funnelGrainNode);
-  testFlow.nodes[1].id = funnel2NodeId;
-  testFlow.nodes[1].numPushes = params.numPushes;
-  testFlow.nodes[1].maxBuffer = params.funnelMaxBuffer;
-  testFlow.nodes[1].y = 200.0;
-  testFlow.nodes[1].wires[0][0] = mixNodeId;
-
-  testFlow.nodes[2] = JSON.parse(mixTestNode);
-  testFlow.nodes[2].id = mixNodeId;
-  testFlow.nodes[2].mix = params.mixPressure;
-  testFlow.nodes[2].x = 300.0;
-  testFlow.nodes[2].wires[0][0] = spoutNodeId;
-
-  testFlow.nodes[3] = JSON.parse(TestUtil.testNodes.spoutTestNode);
-  testFlow.nodes[3].id = spoutNodeId;
-  testFlow.nodes[3].timeout = params.spoutTimeout;
-  testFlow.nodes[3].x = 500.0;
+  const testFlow = TestUtil.testNodes.baseTestFlow();
+  testFlow.nodes.push(Object.assign(TestUtil.testNodes.funnelGrainNode(), {
+    id: funnel1NodeId,
+    numPushes: params.numPushes,
+    maxBuffer: params.funnelMaxBuffer,
+    y: 100.0,
+    wires: [ [ mixNodeId ] ]
+  }));
+  testFlow.nodes.push(Object.assign(TestUtil.testNodes.funnelGrainNode(), {
+    id: funnel2NodeId,
+    numPushes: params.numPushes,
+    maxBuffer: params.funnelMaxBuffer,
+    y: 200.0,
+    wires: [ [ mixNodeId ] ]
+  }));
+  testFlow.nodes.push(Object.assign(mixTestNode(), {
+    id: mixNodeId,
+    mix: params.mixPressure,
+    x: 300.0,
+    wires: [ [ spoutNodeId ] ]
+  }));
+  testFlow.nodes.push(Object.assign(TestUtil.testNodes.spoutTestNode(), {
+    id: spoutNodeId,
+    timeout: params.spoutTimeout,
+    x: 500.0
+  }));
   return testFlow;
 }, (t, params, msgObj, onEnd) => {
   //t.comment(`Message: ${JSON.stringify(msgObj)}`);
