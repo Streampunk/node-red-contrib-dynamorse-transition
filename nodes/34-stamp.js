@@ -72,9 +72,7 @@ module.exports = function (RED) {
       stamper.quit(() => cb());
     };
 
-    this.closeValve = done => {
-      this.close(done);
-    };
+    this.closeValve = () => {};
   }
   util.inherits(Stamp, TransValve);
   RED.nodes.registerType('stamp', Stamp);

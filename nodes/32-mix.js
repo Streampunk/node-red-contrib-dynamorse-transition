@@ -57,10 +57,7 @@ module.exports = function (RED) {
       stamper.quit(() => cb());
     };
 
-    this.closeValve = done => {
-      oscServ.removeControl(config.mixControl);
-      this.close(done);
-    };
+    this.closeValve = () => oscServ.removeControl(config.mixControl);
   }
   util.inherits(Mix, TransValve);
   RED.nodes.registerType('mix', Mix);

@@ -39,10 +39,7 @@ module.exports = function (RED) {
 
     this.quit = cb => cb();
 
-    this.closeValve = done => {
-      oscServ.removeControl(config.actControl);
-      this.close(done);
-    };
+    this.closeValve = () => oscServ.removeControl(config.actControl);
   }
 
   util.inherits(Relay, TransValve);

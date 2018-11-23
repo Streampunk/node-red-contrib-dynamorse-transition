@@ -134,7 +134,7 @@ function TransValve (RED, config) {
     }
   });
 
-  this.on('close', this.closeValve);
+  this.on('close', () => this.closeValve());
 }
 util.inherits(TransValve, redioactive.Valve);
 
