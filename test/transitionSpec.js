@@ -19,6 +19,7 @@ const mixTestNode = () => ({
   type: 'mix',
   z: TestUtil.testFlowId,
   name: 'mix-test',
+  maxBuffer: 10,
   x: 100.0,
   y: 100.0,
   mix: '0.5',

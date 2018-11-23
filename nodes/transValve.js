@@ -26,6 +26,8 @@ function TransValve (RED, config) {
   let setupError = null;
   let srcFlows = null;
   let dstID = {};
+  let srcCable = null;
+  let numEnds = 0;
 
   this.doProcess = (grainSet, push) => {
     const grainTypes = Object.keys(grainSet);
@@ -50,9 +52,11 @@ function TransValve (RED, config) {
       push(err);
       next(redioactive.noTiming);
     } else if (redioactive.isEnd(x)) {
-      this.quit(() => {
-        push(null, x);
-      });
+      if (srcCable && (srcCable.length === ++numEnds)) {
+        this.quit(() => {
+          push(null, x);
+        });
+      }
     } else if (Grain.isGrain(x)) {
       const nextJob = (cableChecked) ?
         Promise.resolve(x) :
@@ -61,10 +65,10 @@ function TransValve (RED, config) {
             return x;
 
           cableChecked = true;
-          const selCable = this.getProcessSources(cable);
+          srcCable = this.getProcessSources(cable);
 
           let outCableSpec = {};
-          selCable.forEach(c => {
+          srcCable.forEach(c => {
             const cableTypes = Object.keys(c);
             cableTypes.forEach(t => {
               if (c[t] && Array.isArray(c[t])) {
@@ -98,7 +102,7 @@ function TransValve (RED, config) {
             }
           });
 
-          srcFlows = new multiFlows(selCable);
+          srcFlows = new multiFlows(srcCable);
           this.setInfo(srcFlows.getTags(), dstTags, logLevel);
           return x;
         });
